@@ -1,17 +1,53 @@
+import ckeditorWaiter from './handlers/ckeditorWaiter';
 import ckeditorHandler from './handlers/ckeditorHandler';
-import hseAppBuilder from './builders/hseAppBuilder';
+import configRepository from './repositories/configRepository';
+import toolModelBuilder from './modelBuilders/toolModelBuilder';
+import { params } from './params/params';
 
 export default class App {
-    constructor() {
-        this.ckeditorHandler = new ckeditorHandler();
-        this.hseAppBuilder = new hseAppBuilder();
+    constructor(config) {
+        this.ckeditorWaiter = new ckeditorWaiter();
+        this.configRepository = new configRepository(config);
     }
 
-    start(config) {
-        this.ckeditorHandler.observe(config.toolbars, this.initApp.bind(this));
+    start() {
+        this.ckeditorWaiter.handle({
+            toolbars: this.configRepository.getToolbars(),
+            onEditor: this.onCKEDITOR.bind(this),
+            onInstance: this.onInstance.bind(this)
+        });
     }
 
-    initApp(editorNode) {
-        this.hseAppBuilder.build(editorNode);
+    onCKEDITOR() {
+        console.log('CKEDITOR init');
+    }
+
+    onInstance() {
+        console.log('CKEDITOR instanse init');
+        var toolGroups = this.configRepository.getToolGroups();
+        if (!toolGroups) {
+            return false;
+        }
+        
+        const ckeHandler = new ckeditorHandler();
+
+        for (let toolGroup of toolGroups) {
+            let tools = this.configRepository.getTools(toolGroup);
+            if (!tools) {
+                continue;
+            }
+
+            for (let toolName in tools) {
+                let toolModel = toolModelBuilder(toolGroup, toolName, tools[toolName]);
+                switch (tools[toolName]['type']) {
+                    case params.ckeToolType.button:
+                        ckeHandler.addButton(toolModel.name, toolModel.definition);
+                        break;
+                    case params.ckeToolType.combo:
+                        ckeHandler.addCombo(toolModel.name, toolModel.definition);
+                        break;
+                }
+            } 
+        }
     }
 }

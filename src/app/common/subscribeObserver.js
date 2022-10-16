@@ -1,5 +1,13 @@
 export default class subscribeObserver
 {
+    observe() {
+        return this.__observer.observe(this.__node, this.__config);
+    }
+
+    disconnect() {
+        return this.__observer.disconnect();
+    }
+
     subscribe(callback) {
         if (typeof this.__subscribers != 'object') {
             this.__subscribers = {};

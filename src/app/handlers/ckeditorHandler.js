@@ -1,145 +1,64 @@
-import editUrlObserver from  './modules/editUrlObserver';
-import ckeditorObserver from './modules/ckeditorObserver';
-import ckeditorProxy from './modules/ckeditorProxy';
+import modelBuilder from "../builders/modelBuilder";
+import { ckeButtonModel } from "../models/ckeButtonModel";
+import { params } from "../params/params";
 
-export default class ckeditorHandler {
+export default class ckeditorHandler
+{
     constructor() {
-        this.ckeditorObserver = new ckeditorObserver();
-        this.editUrlObserver = new editUrlObserver();
-        this.ckeditorProxy = new ckeditorProxy();
+        this.editor = this.__getEditor();
+        this.modelBuilder = new modelBuilder();
+        this.insertTextCounter = 0;
     }
 
-    // observer
-    observe(tollbars, callback) {
-        this.toolbars = tollbars;
-        this.callback = callback;
+    // ui
+    addButton(name='', definition={}) {
+        this.editor.ui.addButton(name, definition);
+    }
 
-        this.ckeditorObserver.subscribe(this.__proxy.bind(this));
+    addCombo(name='', definition={}) {
+        this.editor.ui.addRichCombo(name, definition)
+    }
 
-        if (location.hostname.indexOf('stepik') >= 0) {
-            this.editUrlObserver.subscribe((function() {
-                this.ckeditorObserver.observe();
-            }).bind(this));
+    // editor
+    insertText(text) {
+        this.editor.insertText(text);
+    }
 
-            this.editUrlObserver.observe();
-        } else {
-            this.ckeditorObserver.observe();
+    frameText(before, end) {
+        var selection = this.editor.getSelection().getNative();
+        var text = before + selection + end;
+
+        this.insertText(text);
+    }
+
+    getStyles() {
+        return [CKEDITOR.skin.getPath('editor')].concat(this.editor.config.contentsCss);
+    }
+
+    addCommand(type, args) {
+        switch (type) {
+            case params.ckeToolType.button:
+                return this.__addInsertTextCommand(args);
+            case params.ckeToolType.combo:
+                return this.__buildComboModel(toolGroup, toolName, args.options);
+            default:
+                return null;
         }
     }
 
-    disconnect() {
-        this.ckeditorObserver.disconnect();
-        this.editUrlObserver.disconnect();
+    // handler
+    buildToolModel(toolGroup, toolName, args) {
+        switch (args.type) {
+            case params.ckeToolType.button:
+                return this.__buildButtonModel(toolGroup, toolName, args.options);
+            case params.ckeToolType.combo:
+                return this.__buildComboModel(toolGroup, toolName, args.options);
+            default:
+                return null;
+        }
     }
 
-    __proxy() {
-        this.callback(
-            this.ckeditorProxy.addStepikToolBars(this.toolbars)
-        );
-    }
-
-    // tools
-    ckeInsertText(text) {
-        const editor = this.__ckeFocus();
-        if (editor === null) {
-            return null;
-        }
-
-        editor.insertText(text);
-    }
-
-    ckeFrameRangeWithText(before, after) {
-        const editor = this.__ckeFocus();
-        if (editor === null) {
-            return null;
-        }
-
-        const range = this.__ckeGetRange();
-        const textNode = editor.document.createElement("text");
-
-        textNode.append(new CKEDITOR.dom.element(document.createTextNode(before)));
-        textNode.append(range.cloneContents());
-        textNode.append(new CKEDITOR.dom.element(document.createTextNode(after)));
-
-        editor.insertElement(textNode);
-        editor.resetDirty();
-    }
-
-    // тут пока смотрим по единственному className
-    // больше пока вроде не надо
-    // тут довольно просто применить фрейм к элементу, но сложно обратно
-    ckeFrameRangeWithHTML(tagName, className=null) { // with switch
-        const editor = this.__ckeFocus();
-        if (editor === null) {
-            return null;
-        }
-
-        const range = this.__ckeGetRange();
-
-        // тут смотрим, если выделенный range уже оформлен в нужный html
-        var childs = range.cloneContents().getChildren();
-        var isSetup = false;
-        var textContent = '';
-        for (let i=0; i<childs.count(); i++) {
-            let childHTML = childs.getItem(i).$.innerHTML;
-            if (childHTML) {
-                if (className && (childHTML.indexOf(className) >= 0)) {
-                    isSetup = true;
-                    let tmp = document.createElement("span");
-                    tmp.innerHTML = childHTML;
-                    textContent += tmp.textContent;
-                }
-            }
-        }
-
-        var htmlNode;
-
-        if (isSetup) {
-            htmlNode = editor.document.createElement("text");
-            htmlNode.appendText(textContent);
-        } else {
-            htmlNode = editor.document.createElement(tagName);
-            htmlNode.$['className'] = className;
-            htmlNode.append(range.cloneContents());
-        }
-
-        editor.insertElement(htmlNode);
-        editor.resetDirty();
-
-        return !isSetup;
-    }
-
-    ckeReloadEditor() {
-        const editor = this.__getEditor();
-        if (editor === null) {
-            return null;
-        }
-
-        // на самом деле это тоже костыль
-        // тут переключается режим просмотра в редакторе
-        // но, некоторые элементы необходимо обновлять для просмотра
-        editor.setMode("source", function() { editor.setMode("wysiwyg"); });
-    }
-
-    __ckeGetRange() {
-        const editor = this.__ckeFocus();
-        if (editor === null) {
-            return null;
-        }
-
-        return editor.getSelection().getRanges()[0];
-    }
-
-    __ckeFocus() {
-        const editor = this.__getEditor();
-        if (editor === null) {
-            return null;
-        }
-
-        editor.focus();
-        
-        return editor;
-    }
+    // HELPERS
 
     __getEditor() {
         const instanceId = this.__getCkeditorInstanceId();
@@ -156,5 +75,41 @@ export default class ckeditorHandler {
         } else {
             return null;
         }
+    }
+
+    __buildButtonModel(toolGroup, toolName, args) {
+        var command = '';
+        switch (args.action) {
+            case params.ckeActionType.insertText:
+                command = this.__addInsertTextCommand(args.args.text);
+                break;
+            case params.ckeActionType.frameText:
+                break;
+            case params.ckeActionType.frameHtml:
+                break;
+            default:
+                break;
+        }
+
+        return this.modelBuilder.build(ckeButtonModel, {
+            name: toolName,
+            label: args.label,
+            toolbar: `${toolGroup},${args.position}`,
+            icon: args.icon || 'Button',
+            command: command
+        });
+    }
+
+    __addInsertTextCommand(text) {
+        const commandName = 'hse-insertText-' + this.insertTextCounter;
+        this.insertTextCounter++;
+
+        this.editor.addCommand(commandName, {
+            exec: function( editor ) {
+                editor.insertText(text);
+            }
+        });
+
+        return commandName;
     }
 }
