@@ -7,7 +7,7 @@ export default class ckeditorObserver extends subscribeObserver
         super();
         
         this.__node = document;
-        this.__config = params.default_observer_config;
+        this.__config = params.defaultObserverConfig;
 
         this.onCkeditorPrevious = false;
         this.__observer = new MutationObserver(this.observerHandler.bind(this))

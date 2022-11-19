@@ -1,8 +1,5 @@
 import modelBuilder from "../builders/modelBuilder";
-import typeOf from "../common/typeOf";
-import { ckeButtonModel } from "../models/ckeButtonModel";
 import { configToolbarModel } from "../models/configToolbarModel";
-import { common } from "../params/common";
 import configExamer from "./configExamer";
 
 export default class configRepository

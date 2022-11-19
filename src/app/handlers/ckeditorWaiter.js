@@ -40,5 +40,7 @@ export default class ckeditorWaiter {
             this.params.toolbars,
             this.params.onEditor
         );
+
+        this.ckeditorObserver.disconnect();
     }
 }

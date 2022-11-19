@@ -3,14 +3,21 @@ import ckeditorHandler from './handlers/ckeditorHandler';
 import configRepository from './repositories/configRepository';
 import toolModelBuilder from './modelBuilders/toolModelBuilder';
 import { params } from './params/params';
+import urlObserver from './handlers/modules/urlObserver';
 
 export default class App {
     constructor(config) {
         this.ckeditorWaiter = new ckeditorWaiter();
+        this.urlObserver = new urlObserver();
         this.configRepository = new configRepository(config);
     }
 
     start() {
+        this.urlObserver.subscribe(this.init.bind(this));
+        this.urlObserver.observe();
+    }
+
+    init() {
         this.ckeditorWaiter.handle({
             toolbars: this.configRepository.getToolbars(),
             onEditor: this.onCKEDITOR.bind(this),
