@@ -50,8 +50,8 @@ export const config = {
                     title: 'HSE Templates',
                     options: [
                         {type: 'label', title: 'Titles'},
-                        {type: 'item', title: 'Application', value: '[TITLE] ? #Application [/TITLE]', label: 'application'},
-                        {type: 'item', title: 'Comprehension', value: '[TITLE] ? #Comprehension [/TITLE]', label: 'alert'},
+                        {type: 'item', title: 'Application', value: '[TITLE] ? # Application [/TITLE]', label: 'application'},
+                        {type: 'item', title: 'Comprehension', value: '[TITLE] ? # Comprehension [/TITLE]', label: 'alert'},
                     ],
                     position: 2,
                     action: params.ckeActionType.insertText
